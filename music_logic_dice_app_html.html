@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Music Logic Dice</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --accent: #0f172a;
+      --accent-text: #ffffff;
+      --correct-bg: #ecfdf5;
+      --correct-border: #86efac;
+      --incorrect-bg: #fffbeb;
+      --incorrect-border: #fcd34d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .die {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #f8fafc;
+      padding: 18px;
+      margin-top: 12px;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .value {
+      font-size: 38px;
+      font-weight: 700;
+      min-height: 48px;
+    }
+    button, select, input {
+      font: inherit;
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 16px;
+      background: white;
+      cursor: pointer;
+    }
+    button.primary {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+    select, input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: white;
+    }
+    .stack > * + * { margin-top: 12px; }
+    .small {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .problem {
+      background: #f1f5f9;
+      border-radius: 16px;
+      padding: 18px;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .feedback {
+      border-radius: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+    }
+    .feedback.correct {
+      background: var(--correct-bg);
+      border-color: var(--correct-border);
+    }
+    .feedback.incorrect {
+      background: var(--incorrect-bg);
+      border-color: var(--incorrect-border);
+    }
+    code.inline {
+      background: #e2e8f0;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Music Logic Dice</h1>
+      <p class="small">A single-file HTML app. No React, no build step, and easy to host for students.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row">
+          <h2>1) Solfege Die</h2>
+          <select id="solfegeMode"></select>
+        </div>
+        <div class="die">
+          <div class="label">Current solfege roll</div>
+          <div class="value" id="rolledSolfege">Do</div>
+          <button class="primary" id="rollSolfegeBtn">Roll solfege die</button>
+        </div>
+        <p class="small" id="solfegePoolText"></p>
+      </div>
+
+      <div class="card">
+        <h2>2) Pitch Die</h2>
+        <div class="die">
+          <div class="label">Current pitch roll</div>
+          <div class="value" id="rolledPitch">C</div>
+          <button class="primary" id="rollPitchBtn">Roll pitch die</button>
+        </div>
+        <p class="small" id="pitchUniverseText"></p>
+        <p class="small" id="activePitchText"></p>
+      </div>
+    </div>
+
+    <div class="card stack">
+      <h2>3) Problem Settings</h2>
+      <div style="max-width: 360px;">
+        <label for="thenMode"><strong>Then statement asks for</strong></label>
+        <select id="thenMode"></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <h2>4) Generate</h2>
+        <button class="primary" id="generateBtn">Roll Dice + Generate Problem</button>
+      </div>
+      <p class="small">The selected solfege mode determines the pitch universe and the possible logic problems.</p>
+    </div>
+
+    <div class="card stack">
+      <h2>5) Logic Problem</h2>
+      <div id="problemBox" class="small">Click <code class="inline">Roll Dice + Generate Problem</code> to create a prompt.</div>
+      <div id="answerSection" style="display:none; max-width: 420px;">
+        <label for="studentAnswer"><strong>Student answer</strong></label>
+        <input id="studentAnswer" type="text" />
+      </div>
+      <div id="actions" style="display:none;" class="row">
+        <button id="checkBtn">Check Answer</button>
+        <button class="primary" id="newProblemBtn">New Problem</button>
+      </div>
+      <div id="feedback"></div>
+    </div>
+  </div>
+
+  <script>
+    const SOLFEGE_PRESETS = {
+      major: ["Do", "Re", "Mi", "Fa", "Sol", "La", "Ti"],
+      minor: ["Do", "Re", "Me", "Fa", "Sol", "Le", "Te"],
+      majorMinor: ["Do", "Re", "Mi", "Me", "Fa", "Sol", "La", "Le", "Ti", "Te"],
+      chromatic: ["Do", "Di", "Ra", "Re", "Ri", "Me", "Mi", "Fa", "Fi", "Se", "Sol", "Si", "Le", "La", "Li", "Te", "Ti"],
+    };
+
+    const SOLFEGE_MODE_OPTIONS = [
+      { value: "major", label: "Major only" },
+      { value: "minor", label: "Minor only" },
+      { value: "majorMinor", label: "Major and minor" },
+      { value: "chromatic", label: "Chromatic" },
+    ];
+
+    const THEN_OPTIONS = [
+      { value: "random", label: "Random" },
+      { value: "givePitch", label: "Solfege answer" },
+      { value: "giveSolfege", label: "Pitch answer" },
+    ];
+
+    const MAJOR_KEYS = [
+      { label: "C major", tonic: "C", type: "major" },
+      { label: "G major", tonic: "G", type: "major" },
+      { label: "D major", tonic: "D", type: "major" },
+      { label: "A major", tonic: "A", type: "major" },
+      { label: "E major", tonic: "E", type: "major" },
+      { label: "B major", tonic: "B", type: "major" },
+      { label: "F# major", tonic: "F#", type: "major" },
+      { label: "C# major", tonic: "C#", type: "major" },
+      { label: "Cb major", tonic: "Cb", type: "major" },
+      { label: "Gb major", tonic: "Gb", type: "major" },
+      { label: "Db major", tonic: "Db", type: "major" },
+      { label: "Ab major", tonic: "Ab", type: "major" },
+      { label: "Eb major", tonic: "Eb", type: "major" },
+      { label: "Bb major", tonic: "Bb", type: "major" },
+      { label: "F major", tonic: "F", type: "major" },
+    ];
+
+    const MINOR_KEYS = [
+      { label: "A minor", tonic: "A", type: "minor" },
+      { label: "E minor", tonic: "E", type: "minor" },
+      { label: "B minor", tonic: "B", type: "minor" },
+      { label: "F# minor", tonic: "F#", type: "minor" },
+      { label: "C# minor", tonic: "C#", type: "minor" },
+      { label: "G# minor", tonic: "G#", type: "minor" },
+      { label: "D# minor", tonic: "D#", type: "minor" },
+      { label: "A# minor", tonic: "A#", type: "minor" },
+      { label: "Ab minor", tonic: "Ab", type: "minor" },
+      { label: "Eb minor", tonic: "Eb", type: "minor" },
+      { label: "Bb minor", tonic: "Bb", type: "minor" },
+      { label: "F minor", tonic: "F", type: "minor" },
+      { label: "C minor", tonic: "C", type: "minor" },
+      { label: "G minor", tonic: "G", type: "minor" },
+      { label: "D minor", tonic: "D", type: "minor" },
+    ];
+
+    const LETTERS = ["C", "D", "E", "F", "G", "A", "B"];
+    const NATURAL_PITCH_CLASS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+    const MAJOR_INTERVALS = [0, 2, 4, 5, 7, 9, 11];
+    const NATURAL_MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 10];
+    const HARMONIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 8, 11];
+    const MELODIC_MINOR_INTERVALS = [0, 2, 3, 5, 7, 9, 11];
+
+    const state = {
+      solfegeMode: "major",
+      thenMode: "random",
+      rolledSolfege: "Do",
+      rolledPitch: "C",
+      problem: null,
+      studentAnswer: "",
+      feedback: null,
+    };
+
+    function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function unique(arr) { return [...new Set(arr)]; }
+    function normalizeAnswer(value) { return value.trim().replace(/\s+/g, " ").toLowerCase(); }
+
+    function parsePitchName(pitch) {
+      const match = pitch.match(/^([A-G])(#{1,2}|b{1,2})?$/);
+      if (!match) return { letter: "C", pitchClass: 0 };
+      const letter = match[1];
+      const accidental = match[2] || "";
+      let pitchClass = NATURAL_PITCH_CLASS[letter];
+      for (const ch of accidental) {
+        if (ch === "#") pitchClass += 1;
+        if (ch === "b") pitchClass -= 1;
+      }
+      pitchClass = ((pitchClass % 12) + 12) % 12;
+      return { letter, pitchClass };
+    }
+
+    function accidentalFromDiff(diff) {
+      if (diff === 0) return "";
+      if (diff === 1) return "#";
+      if (diff === 2) return "##";
+      if (diff === 11) return "b";
+      if (diff === 10) return "bb";
+      return null;
+    }
+
+    function buildScaleFromIntervals(tonic, intervals) {
+      const tonicInfo = parsePitchName(tonic);
+      const tonicLetterIndex = LETTERS.indexOf(tonicInfo.letter);
+      return intervals.map((interval, index) => {
+        const targetPitchClass = (tonicInfo.pitchClass + interval) % 12;
+        const letter = LETTERS[(tonicLetterIndex + index) % 7];
+        const naturalPc = NATURAL_PITCH_CLASS[letter];
+        const diff = (targetPitchClass - naturalPc + 12) % 12;
+        const accidental = accidentalFromDiff(diff);
+        return `${letter}${accidental ?? ""}`;
+      });
+    }
+
+    function alterPitch(pitch, semitones) {
+      const parsed = pitch.match(/^([A-G])(#{1,2}|b{1,2})?$/);
+      if (!parsed) return pitch;
+      const letter = parsed[1];
+      const accidental = parsed[2] || "";
+      let value = 0;
+      for (const ch of accidental) {
+        if (ch === "#") value += 1;
+        if (ch === "b") value -= 1;
+      }
+      value += semitones;
+      if (value === 0) return letter;
+      if (value === 1) return `${letter}#`;
+      if (value === 2) return `${letter}##`;
+      if (value === -1) return `${letter}b`;
+      if (value === -2) return `${letter}bb`;
+      return pitch;
+    }
+
+    function buildMajorMappings(key) {
+      const scale = buildScaleFromIntervals(key.tonic, MAJOR_INTERVALS);
+      const base = { Do: scale[0], Re: scale[1], Mi: scale[2], Fa: scale[3], Sol: scale[4], La: scale[5], Ti: scale[6] };
+      const chromatic = {
+        ...base,
+        Di: alterPitch(scale[0], 1),
+        Ra: alterPitch(scale[1], -1),
+        Ri: alterPitch(scale[1], 1),
+        Me: alterPitch(scale[2], -1),
+        Fi: alterPitch(scale[3], 1),
+        Se: alterPitch(scale[4], -1),
+        Si: alterPitch(scale[4], 1),
+        Le: alterPitch(scale[5], -1),
+        Li: alterPitch(scale[5], 1),
+        Te: alterPitch(scale[6], -1),
+      };
+      return { keyLabel: key.label, diatonic: base, chromatic, allPitches: scale };
+    }
+
+    function buildMinorFormMappings(key) {
+      const natural = buildScaleFromIntervals(key.tonic, NATURAL_MINOR_INTERVALS);
+      const harmonic = buildScaleFromIntervals(key.tonic, HARMONIC_MINOR_INTERVALS);
+      const melodic = buildScaleFromIntervals(key.tonic, MELODIC_MINOR_INTERVALS);
+      const naturalMap = { Do: natural[0], Re: natural[1], Me: natural[2], Fa: natural[3], Sol: natural[4], Le: natural[5], Te: natural[6] };
+      const mixedMinorMap = {
+        Do: natural[0], Re: natural[1], Me: natural[2], Mi: alterPitch(natural[2], 1), Fa: natural[3], Sol: natural[4],
+        Le: natural[5], La: alterPitch(natural[5], 1), Te: natural[6], Ti: alterPitch(natural[6], 1),
+      };
+      const chromatic = {
+        Do: natural[0], Di: alterPitch(natural[0], 1), Ra: natural[1], Re: natural[1], Ri: alterPitch(natural[1], 1),
+        Me: natural[2], Mi: alterPitch(natural[2], 1), Fa: natural[3], Fi: alterPitch(natural[3], 1), Se: natural[4],
+        Sol: natural[4], Si: alterPitch(natural[4], 1), Le: natural[5], La: alterPitch(natural[5], 1), Li: alterPitch(natural[5], 2),
+        Te: natural[6], Ti: alterPitch(natural[6], 1),
+      };
+      return { keyLabel: key.label, naturalMinor: naturalMap, mixedMinor: mixedMinorMap, chromatic, allPitches: unique([...natural, ...harmonic, ...melodic]) };
+    }
+
+    function buildModeDatabase(mode) {
+      const majorMappings = MAJOR_KEYS.map(buildMajorMappings);
+      const minorMappings = MINOR_KEYS.map(buildMinorFormMappings);
+
+      if (mode === "major") {
+        const mappings = majorMappings.map(entry => ({ keyLabel: entry.keyLabel, mapping: entry.diatonic }));
+        return { mappings, pitchUniverse: unique(majorMappings.flatMap(entry => Object.values(entry.diatonic))) };
+      }
+      if (mode === "minor") {
+        const mappings = minorMappings.map(entry => ({ keyLabel: entry.keyLabel, mapping: entry.naturalMinor }));
+        return { mappings, pitchUniverse: unique(minorMappings.flatMap(entry => entry.allPitches)) };
+      }
+      if (mode === "majorMinor") {
+        const mappings = [
+          ...majorMappings.map(entry => ({ keyLabel: entry.keyLabel, mapping: entry.diatonic })),
+          ...minorMappings.map(entry => ({ keyLabel: entry.keyLabel, mapping: entry.mixedMinor })),
+        ];
+        return {
+          mappings,
+          pitchUniverse: unique([
+            ...majorMappings.flatMap(entry => Object.values(entry.diatonic)),
+            ...minorMappings.flatMap(entry => entry.allPitches),
+          ])
+        };
+      }
+      const mappings = [
+        ...majorMappings.map(entry => ({ keyLabel: entry.keyLabel, mapping: entry.chromatic })),
+        ...minorMappings.map(entry => ({ keyLabel: entry.keyLabel, mapping: entry.chromatic })),
+      ];
+      return { mappings, pitchUniverse: unique(mappings.flatMap(entry => Object.values(entry.mapping))) };
+    }
+
+    function getSolfegePool(mode) {
+      return SOLFEGE_PRESETS[mode] || SOLFEGE_PRESETS.major;
+    }
+
+    function getValidPitchOptionsForSolfege(solfege, mappings) {
+      return unique(mappings.map(entry => entry.mapping[solfege]).filter(Boolean));
+    }
+
+    function el(id) { return document.getElementById(id); }
+
+    function render() {
+      const database = buildModeDatabase(state.solfegeMode);
+      const solfegePool = getSolfegePool(state.solfegeMode);
+      const validPitchOptions = getValidPitchOptionsForSolfege(state.rolledSolfege, database.mappings);
+
+      el("rolledSolfege").textContent = state.rolledSolfege;
+      el("rolledPitch").textContent = state.rolledPitch;
+      el("solfegePoolText").textContent = `Active sides: ${solfegePool.join(", ")}`;
+      el("pitchUniverseText").textContent = `Mode pitch universe: ${database.pitchUniverse.join(", ")}`;
+      el("activePitchText").textContent = `Current active sides for ${state.rolledSolfege}: ${validPitchOptions.length ? validPitchOptions.join(", ") : "None"}`;
+      el("studentAnswer").value = state.studentAnswer;
+
+      const problemBox = el("problemBox");
+      const answerSection = el("answerSection");
+      const actions = el("actions");
+      const feedback = el("feedback");
+
+      if (!state.problem) {
+        problemBox.className = "small";
+        problemBox.textContent = "Click Roll Dice + Generate Problem to create a prompt.";
+        answerSection.style.display = "none";
+        actions.style.display = "none";
+      } else if (state.problem.error) {
+        problemBox.className = "feedback incorrect";
+        problemBox.textContent = state.problem.error;
+        answerSection.style.display = "none";
+        actions.style.display = "none";
+      } else {
+        problemBox.className = "problem";
+        problemBox.innerHTML = `<div>${state.problem.ifClause}</div><div>${state.problem.thenClause}</div>`;
+        answerSection.style.display = "block";
+        actions.style.display = "flex";
+      }
+
+      feedback.innerHTML = "";
+      if (state.feedback) {
+        const div = document.createElement("div");
+        div.className = `feedback ${state.feedback.type === "correct" ? "correct" : "incorrect"}`;
+        div.textContent = state.feedback.message;
+        feedback.appendChild(div);
+      }
+    }
+
+    function rollSolfegeDie() {
+      const solfegePool = getSolfegePool(state.solfegeMode);
+      state.rolledSolfege = randomFrom(solfegePool);
+      render();
+    }
+
+    function rollPitchDie() {
+      const database = buildModeDatabase(state.solfegeMode);
+      const validPitchOptions = getValidPitchOptionsForSolfege(state.rolledSolfege, database.mappings);
+      const source = validPitchOptions.length ? validPitchOptions : database.pitchUniverse;
+      state.rolledPitch = randomFrom(source);
+      render();
+    }
+
+    function generateProblem() {
+      const database = buildModeDatabase(state.solfegeMode);
+      const solfegePool = getSolfegePool(state.solfegeMode);
+      const chosenSolfege = randomFrom(solfegePool);
+      const validPitchOptions = getValidPitchOptionsForSolfege(chosenSolfege, database.mappings);
+
+      state.studentAnswer = "";
+      state.feedback = null;
+
+      if (!validPitchOptions.length) {
+        state.problem = { error: `No valid pitches are available for ${chosenSolfege} in this mode.` };
+        state.rolledSolfege = chosenSolfege;
+        state.rolledPitch = "—";
+        render();
+        return;
+      }
+
+      const chosenPitch = randomFrom(validPitchOptions);
+      state.rolledSolfege = chosenSolfege;
+      state.rolledPitch = chosenPitch;
+
+      const candidateMappings = database.mappings.filter(entry => entry.mapping[chosenSolfege] === chosenPitch);
+      if (!candidateMappings.length) {
+        state.problem = { error: `No logic problem could be built for ${chosenSolfege} = ${chosenPitch}.` };
+        render();
+        return;
+      }
+
+      const selectedMapping = randomFrom(candidateMappings);
+      const mapping = selectedMapping.mapping;
+      const resolvedThenMode = state.thenMode === "random"
+        ? (Math.random() < 0.5 ? "givePitch" : "giveSolfege")
+        : state.thenMode;
+
+      if (resolvedThenMode === "givePitch") {
+        const targetPitches = unique(Object.values(mapping)).filter(pitch => pitch !== chosenPitch);
+        const targetPitch = randomFrom(targetPitches);
+        state.problem = {
+          ifClause: `If ${chosenSolfege} is ${chosenPitch},`,
+          thenClause: `then ${targetPitch} is _____.`,
+          internalAnswer: Object.keys(mapping).find(syllable => mapping[syllable] === targetPitch) || "",
+          answerType: "solfege",
+        };
+      } else {
+        const targetSolfege = randomFrom(Object.keys(mapping).filter(syllable => syllable !== chosenSolfege));
+        state.problem = {
+          ifClause: `If ${chosenSolfege} is ${chosenPitch},`,
+          thenClause: `then ${targetSolfege} is _____.`,
+          internalAnswer: mapping[targetSolfege],
+          answerType: "pitch",
+        };
+      }
+      render();
+    }
+
+    function checkAnswer() {
+      if (!state.problem || state.problem.error) return;
+      const submitted = normalizeAnswer(state.studentAnswer);
+      const correct = normalizeAnswer(state.problem.internalAnswer || "");
+      if (!submitted) {
+        state.feedback = { type: "incorrect", message: "Enter an answer first." };
+      } else if (submitted === correct) {
+        state.feedback = { type: "correct", message: "Correct." };
+      } else {
+        state.feedback = { type: "incorrect", message: `Not quite. Correct answer: ${state.problem.internalAnswer}` };
+      }
+      render();
+    }
+
+    function populateSelect(selectId, options, currentValue) {
+      const select = el(selectId);
+      select.innerHTML = "";
+      options.forEach(option => {
+        const node = document.createElement("option");
+        node.value = option.value;
+        node.textContent = option.label;
+        if (option.value === currentValue) node.selected = true;
+        select.appendChild(node);
+      });
+    }
+
+    populateSelect("solfegeMode", SOLFEGE_MODE_OPTIONS, state.solfegeMode);
+    populateSelect("thenMode", THEN_OPTIONS, state.thenMode);
+
+    el("solfegeMode").addEventListener("change", (e) => {
+      state.solfegeMode = e.target.value;
+      state.problem = null;
+      state.feedback = null;
+      render();
+    });
+
+    el("thenMode").addEventListener("change", (e) => {
+      state.thenMode = e.target.value;
+    });
+
+    el("rollSolfegeBtn").addEventListener("click", rollSolfegeDie);
+    el("rollPitchBtn").addEventListener("click", rollPitchDie);
+    el("generateBtn").addEventListener("click", generateProblem);
+    el("newProblemBtn").addEventListener("click", generateProblem);
+    el("checkBtn").addEventListener("click", checkAnswer);
+    el("studentAnswer").addEventListener("input", (e) => {
+      state.studentAnswer = e.target.value;
+    });
+    el("studentAnswer").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") checkAnswer();
+    });
+
+    render();
+  </script>
+</body>
+</html>
